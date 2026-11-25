@@ -1,0 +1,14 @@
+import { readFile, writeFile } from 'node:fs/promises';
+import { SUPABASE_URL, SUPABASE_KEY } from '../config.js';
+const origin=process.argv[2];
+if(!origin||!/^https:\/\//.test(origin))throw new Error('Jalankan: node scripts/publish-metadata.mjs https://sitwicend.github.io/wicend-twibbon/');
+const response=await fetch(`${SUPABASE_URL}/rest/v1/site_settings?select=*&limit=1`,{headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`}});
+if(!response.ok)throw new Error(`Settings gagal dibaca: HTTP ${response.status}`);
+const rows=await response.json();const row=rows[0]||{};const s=row.settings||row.data||row;
+const escape=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const title=s.site_title||'wicend-twibbon';const description=s.site_description||'Pasang foto, pilih bingkai, dan sebarkan dukunganmu.';
+const image=new URL(s.og_image_url||'./assets/share-card.png',origin).href;
+let html=await readFile(new URL('../index.html',import.meta.url),'utf8');
+html=html.replace(/<!-- SHARE_METADATA_START -->[\s\S]*?<!-- SHARE_METADATA_END -->/,'').replace(/<title>[\s\S]*?<\/title>/,`<title>${escape(title)}</title>`);
+const tags=`<!-- SHARE_METADATA_START -->\n<meta property="og:type" content="website">\n<meta property="og:title" content="${escape(title)}">\n<meta property="og:description" content="${escape(description)}">\n<meta property="og:url" content="${escape(origin)}">\n<meta property="og:image" content="${escape(image)}">\n<meta name="twitter:card" content="summary_large_image">\n<meta name="twitter:image" content="${escape(image)}">\n${s.favicon_url?`<link rel="icon" href="${escape(new URL(s.favicon_url,origin).href)}">`:''}\n<!-- SHARE_METADATA_END -->\n`;
+html=html.replace('</head>',tags+'</head>');await writeFile(new URL('../index.html',import.meta.url),html);console.log('Metadata index.html diperbarui. Commit dan push index.html ke GitHub.');

@@ -1,6 +1,8 @@
 import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
 import { dashboard } from './dashboard.js';
 import { editor } from './editor.js';
+import { loadSiteSettings, applySiteSettings } from './settings.js';
+let currentSiteSettings = {};
 
 const app = document.querySelector('#app');
 export const esc = (s='') => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -176,7 +178,7 @@ export async function api(path, options = {}) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Belum login.');
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-    const isAdmin = profile?.role === 'admin';
+    const isAdmin = ['admin', 'superadmin'].includes(profile?.role);
     
     let query = supabase.from('campaigns').select('*').order('created_at', { ascending: false });
     if (!isAdmin) query = query.eq('owner', user.id);
@@ -251,7 +253,7 @@ export async function api(path, options = {}) {
     if (fetchError) throw fetchError;
     
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-    const isAdmin = profile?.role === 'admin';
+    const isAdmin = ['admin', 'superadmin'].includes(profile?.role);
     if (existing.owner !== user.id && !isAdmin) throw new Error('Tidak memiliki akses.');
 
     const uploadedFrames = [];
@@ -305,7 +307,7 @@ export async function api(path, options = {}) {
     if (fetchError) throw fetchError;
     
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-    const isAdmin = profile?.role === 'admin';
+    const isAdmin = ['admin', 'superadmin'].includes(profile?.role);
     if (existing.owner !== user.id && !isAdmin) throw new Error('Tidak memiliki akses.');
 
     const { error } = await supabase.from('campaigns').delete().eq('slug', slug);
@@ -327,7 +329,7 @@ export async function api(path, options = {}) {
     if (!user) throw new Error('Belum login.');
     
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-    if (profile?.role !== 'admin') throw new Error('Hanya admin yang dapat melihat daftar pengguna.');
+    if (!['admin', 'superadmin'].includes(profile?.role)) throw new Error('Hanya admin yang dapat melihat daftar pengguna.');
     
     const { data, error } = await supabase.from('profiles').select('id, name, email, role, created_at').order('created_at', { ascending: false });
     if (error) throw error;
@@ -508,7 +510,11 @@ async function resetPassword() {
   };
 }
 
-const helpers = { api, esc, toast, copy };
+const helpers = { api, esc, toast, copy, sb: supabase, onSiteSettingsSaved(settings) { currentSiteSettings = settings; applySiteSettings(settings); } };
+if (supabase) {
+  try { currentSiteSettings = await loadSiteSettings(supabase); }
+  catch (error) { console.warn(error.message); }
+}
 
 async function route() {
   if (!supabase) return;
@@ -519,6 +525,7 @@ async function route() {
   try {
     if (path === '/' || path === '') {
       await home(app, true);
+      applySiteSettings(currentSiteSettings);
     } else if (path === '/jelajah') {
       await home(app, false);
     } else if (path === '/login' || path === '/register') {

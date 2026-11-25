@@ -1,3 +1,5 @@
+import { settingsPanel } from './settings.js';
+
 const number = new Intl.NumberFormat('id-ID');
 const date = new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' });
 const count = value => Math.max(0, Number(value) || 0);
@@ -17,7 +19,7 @@ async function readPng(file) {
   });
 }
 
-export async function dashboard(app, { api, esc, toast, copy }) {
+export async function dashboard(app, { api, esc, toast, copy, sb, onSiteSettingsSaved }) {
   const e = value => esc(String(value ?? ''));
   const campaignPath = slug => `#/c/${encodeURIComponent(slug)}`;
   const managePath = slug => `/api/manage/${encodeURIComponent(slug)}`;
@@ -25,7 +27,8 @@ export async function dashboard(app, { api, esc, toast, copy }) {
   let campaigns = [];
   let view = 'overview';
   let busy = false;
-  const isAdmin = () => user?.role === 'admin' || user?.isAdmin === true;
+  const isSuperadmin = () => user?.role === 'superadmin';
+  const isAdmin = () => isSuperadmin() || user?.role === 'admin' || user?.isAdmin === true;
   const post = (path, body) => api(path, { method: 'POST', body });
   const errorMessage = error => error?.message || 'Terjadi kesalahan. Coba lagi.';
 
@@ -41,10 +44,11 @@ export async function dashboard(app, { api, esc, toast, copy }) {
     }
   }
 
-  const tabs = { overview: 'Ringkasan', campaigns: 'Kampanye', create: 'Buat kampanye', accounts: 'Akun pengguna' };
+  const tabs = { overview: 'Ringkasan', campaigns: 'Kampanye', create: 'Buat kampanye', accounts: 'Akun pengguna', settings: 'Situs & halaman depan' };
+  const canView = key => key === 'settings' ? isSuperadmin() : key !== 'accounts' || isAdmin();
   function shell(current, title, subtitle) {
-    app.innerHTML = `<section class="wrap rb-dash"><aside class="rb-sidebar rb-panel"><span class="rb-kicker">RUANG KREATOR</span><strong>${e(user.name || user.email)}</strong><small>${isAdmin() ? 'Administrator' : 'Kreator'}</small>
-      <nav aria-label="Navigasi dasbor">${Object.entries(tabs).filter(([key]) => key !== 'accounts' || isAdmin()).map(([key, label]) => `<button type="button" data-view="${key}" ${current === key ? 'aria-current="page"' : ''}>${label}</button>`).join('')}</nav>
+    app.innerHTML = `<section class="wrap rb-dash"><aside class="rb-sidebar rb-panel"><span class="rb-kicker">RUANG KREATOR</span><strong>${e(user.name || user.email)}</strong><small>${isSuperadmin() ? 'Superadmin' : isAdmin() ? 'Administrator' : 'Kreator'}</small>
+      <nav aria-label="Navigasi dasbor">${Object.entries(tabs).filter(([key]) => canView(key)).map(([key, label]) => `<button type="button" data-view="${key}" ${current === key ? 'aria-current="page"' : ''}>${label}</button>`).join('')}</nav>
       <button type="button" class="btn outline rb-logout">Keluar</button></aside>
       <div class="rb-main"><header class="rb-heading"><span class="rb-kicker">DASBOR</span><h1>${e(title)}</h1><p>${e(subtitle)}</p></header><div class="rb-body"></div></div></section>`;
     app.querySelectorAll('[data-view]').forEach(button => { button.onclick = () => { if (!busy) show(button.dataset.view); }; });
@@ -58,11 +62,13 @@ export async function dashboard(app, { api, esc, toast, copy }) {
     return app.querySelector('.rb-body');
   }
 
-  function overview(body) {
+  function overview(body, users) {
     const totals = campaigns.reduce((result, item) => [result[0] + count(item.views), result[1] + count(item.downloads)], [0, 0]);
     const popular = [...campaigns].sort((a, b) => count(b.views) - count(a.views)).slice(0, 6);
     const max = Math.max(1, ...popular.map(item => Math.max(count(item.views), count(item.downloads))));
-    body.innerHTML = `<div class="rb-metrics">${[['Kampanye', campaigns.length], ['Tayangan', totals[0]], ['Unduhan', totals[1]]].map(([label, value]) => `<article class="rb-metric"><span>${label}</span><strong>${number.format(value)}</strong></article>`).join('')}</div>
+    const metrics = [['Kampanye', campaigns.length], ['Tayangan', totals[0]], ['Unduhan', totals[1]]];
+    if (users !== undefined) metrics.push(['Pengguna', users]);
+    body.innerHTML = `<div class="rb-metrics">${metrics.map(([label, value]) => `<article class="rb-metric"><span>${label}</span><strong>${number.format(value)}</strong></article>`).join('')}</div>
       <section class="rb-panel rb-chart"><div class="rb-section-head"><h2>Kampanye teratas</h2><button class="btn outline" data-list type="button">Lihat kampanye</button></div>
       ${popular.length ? `<p class="rb-legend"><span>Tayangan</span><span>Unduhan</span></p>${popular.map(item => `<div class="rb-chart-row"><strong>${e(item.title)}</strong>${['views', 'downloads'].map((key, i) => `<div class="rb-bar-line"><meter min="0" max="${max}" value="${count(item[key])}" aria-label="${i ? 'Unduhan' : 'Tayangan'}: ${e(item.title)}"></meter><span>${number.format(count(item[key]))}</span></div>`).join('')}</div>`).join('')}` : '<p>Belum ada kampanye untuk ditampilkan.</p>'}</section>`;
     body.querySelector('[data-list]').onclick = () => { if (!busy) show('campaigns'); };
@@ -158,19 +164,26 @@ export async function dashboard(app, { api, esc, toast, copy }) {
   }
 
   async function show(next) {
-    if (next === 'accounts' && !isAdmin()) return;
+    if (!canView(next)) return;
     if (next === 'create') { editor(); return; }
     view = next;
-    const subtitles = { overview: 'Pantau performa kampanye dalam satu tempat.', campaigns: 'Kelola kampanye dan bagikan tautannya.', accounts: 'Lihat akun yang terdaftar di wicend-twibbon.' };
+    const subtitles = { overview: 'Pantau performa kampanye dalam satu tempat.', campaigns: 'Kelola kampanye dan bagikan tautannya.', accounts: 'Lihat akun yang terdaftar di wicend-twibbon.', settings: 'Kelola identitas situs dan isi halaman depan.' };
     const body = shell(next, tabs[next], subtitles[next]);
     body.innerHTML = '<p role="status">Memuat…</p>';
     try {
-      const data = await api(next === 'accounts' ? '/api/users' : '/api/manage');
+      if (next === 'settings') {
+        await settingsPanel(body, { sb, esc, perform, onSaved: onSiteSettingsSaved });
+        return;
+      }
+      const [data, users] = await Promise.all([
+        api(next === 'accounts' ? '/api/users' : '/api/manage'),
+        next === 'overview' && isAdmin() ? api('/api/users') : undefined,
+      ]);
       if (view !== next || !app.contains(body)) return;
       if (next === 'accounts') accounts(body, data);
       else {
         campaigns = data;
-        if (next === 'overview') overview(body);
+        if (next === 'overview') overview(body, users?.length);
         else campaignList(body);
       }
     } catch (error) {

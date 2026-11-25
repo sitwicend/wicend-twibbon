@@ -36,7 +36,7 @@
 .rb-sidebar nav button:hover { background: #e3f3e9; }
 .rb-sidebar nav button[aria-current] { color: #fff; background: var(--rb-mint); }
 .rb-heading { margin-bottom: 1.5rem; }
-.rb-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; margin-bottom: 1rem; }
+.rb-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr)); gap: .75rem; margin-bottom: 1rem; }
 .rb-metric { background: #d8f1e4; border-radius: 1rem; padding: clamp(.6rem, 3vw, 1.4rem); overflow-wrap: anywhere; }
 .rb-metric:nth-child(2) { background: #f8edd3; }
 .rb-metric:nth-child(3) { background: #efebfb; }

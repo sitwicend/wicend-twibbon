@@ -1,4 +1,4 @@
-# RuangBingkai
+# wicend-twibbon
 
 Aplikasi Twibbon berbahasa Indonesia. Foto pengunjung diproses dengan Canvas di browser; server menyimpan akun, kampanye, frame kreator, dan statistik di SQLite.
 
@@ -11,7 +11,7 @@ Ikuti [panduan Supabase + GitHub + Cloudflare Pages](DEPLOY.md) untuk menerapkan
 Butuh Node.js 24 atau lebih baru. Tidak perlu memasang paket.
 
 ```powershell
-cd RuangBingkai
+cd wicend-twibbon
 node server.mjs
 ```
 
@@ -23,7 +23,7 @@ $env:ADMIN_PASSWORD = '<ganti-dengan-password-kuat>'
 node server.mjs
 ```
 
-Pengaturan opsional: `HOST`, `PORT`, `DB_PATH`. Default penyimpanan: `ruangbingkai.sqlite` di folder proyek. Untuk pemasangan publik, gunakan HTTPS dan aktifkan cookie Secure (`COOKIE_SECURE=1`). Tautan kampanye menggunakan alamat tempat aplikasi dijalankan, jadi URL `127.0.0.1` tidak dapat diakses teman dari perangkat lain.
+Pengaturan opsional: `HOST`, `PORT`, `DB_PATH`. Default penyimpanan: `wicend-twibbon.sqlite` di folder proyek. Untuk pemasangan publik, gunakan HTTPS dan aktifkan cookie Secure (`COOKIE_SECURE=1`). Tautan kampanye menggunakan alamat tempat aplikasi dijalankan, jadi URL `127.0.0.1` tidak dapat diakses teman dari perangkat lain.
 
 ## Cara pakai
 

@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mengalihkan… — wicend-twibbon</title>
+<script>
+  // GitHub Pages menyajikan 404.html untuk path yang tidak ada.
+  // Karena aplikasi memakai hash routing, alihkan kembali ke index di root subpath.
+  var seg = location.pathname.split('/').filter(Boolean);
+  var base = seg.length ? '/' + seg[0] + '/' : '/';
+  location.replace((location.pathname.replace(/\/?$/, '/') === base ? '/' : base) + '#/');
+</script>
+</head>
+<body><p>Mengalihkan ke beranda… <a href="/">klik di sini</a> jika tidak otomatis.</p></body>
+</html>

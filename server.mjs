@@ -5,7 +5,7 @@ import { resolve, relative, isAbsolute, extname, sep } from 'node:path';
 import { promisify } from 'node:util';
 import { DatabaseSync } from 'node:sqlite';
 
-const db = new DatabaseSync(process.env.DB_PATH || resolve(import.meta.dirname, 'ruangbingkai.sqlite'));
+const db = new DatabaseSync(process.env.DB_PATH || resolve(import.meta.dirname, 'wicend-twibbon.sqlite'));
 const publicDir = resolve(import.meta.dirname, 'public');
 const derive = promisify(scrypt);
 const cap = 24 * 1024 * 1024;
@@ -305,5 +305,5 @@ const server = createServer(async (req, res) => {
 });
 server.listen(Number(process.env.PORT ?? 3000), process.env.HOST || '127.0.0.1', () => {
   const { address, port } = server.address();
-  console.log(`RuangBingkai listening on http://${address.includes(':') ? `[${address}]` : address}:${port}`);
+  console.log(`wicend-twibbon listening on http://${address.includes(':') ? `[${address}]` : address}:${port}`);
 });
